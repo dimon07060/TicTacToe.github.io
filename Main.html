@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики-нолики онлайн</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-info {
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 10px;
+            margin: 20px auto;
+            max-width: 300px;
+        }
+        
+        .cell {
+            aspect-ratio: 1;
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .cell:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+        
+        .cell.x {
+            color: #ff4d4d;
+        }
+        
+        .cell.o {
+            color: #4da6ff;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(to right, #ff4d4d, #ff9966);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .winning-cell {
+            background-color: rgba(255, 215, 0, 0.3);
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .result {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            min-height: 40px;
+        }
+        
+        .lobby {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        
+        .input-group {
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        input {
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+        
+        .room-code {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 3px;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        
+        .player-status {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+        }
+        
+        .player {
+            padding: 10px 15px;
+            border-radius: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        
+        .player.active {
+            background-color: rgba(255, 215, 0, 0.3);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .connection-status {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Крестики-нолики онлайн</h1>
+        
+        <div id="lobby" class="lobby">
+            <div class="input-group">
+                <button id="create-room-btn">Создать комнату</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="room-code-input" placeholder="Введите код комнаты">
+                <button id="join-room-btn">Присоединиться</button>
+            </div>
+            <div class="connection-status" id="connection-status">
+                Режим тестирования: используйте одинаковый код комнаты на двух устройствах
+            </div>
+        </div>
+        
+        <div id="game" class="hidden">
+            <div class="room-code">Код комнаты: <span id="room-code-display"></span></div>
+            
+            <div class="player-status">
+                <div id="player1" class="player">Игрок 1 (X): <span id="player1-name">Вы</span></div>
+                <div id="player2" class="player">Игрок 2 (O): <span id="player2-name">Ожидание...</span></div>
+            </div>
+            
+            <div class="game-info">
+                <div id="current-player">Сейчас ходит: <span id="player-symbol">X</span></div>
+            </div>
+            
+            <div class="game-board" id="game-board">
+                <!-- Ячейки будут созданы через JavaScript -->
+            </div>
+            
+            <div class="result" id="result"></div>
+            
+            <div class="controls">
+                <button id="restart-btn">Новая игра</button>
+                <button id="leave-room-btn">Покинуть комнату</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Упрощенная версия для тестирования
+        document.addEventListener('DOMContentLoaded', () => {
+            const lobbyElement = document.getElementById('lobby');
+            const gameElement = document.getElementById('game');
+            const createRoomBtn = document.getElementById('create-room-btn');
+            const joinRoomBtn = document.getElementById('join-room-btn');
+            const roomCodeInput = document.getElementById('room-code-input');
+            const roomCodeDisplay = document.getElementById('room-code-display');
+            const player1Element = document.getElementById('player1');
+            const player2Element = document.getElementById('player2');
+            const player1Name = document.getElementById('player1-name');
+            const player2Name = document.getElementById('player2-name');
+            const currentPlayerElement = document.getElementById('player-symbol');
+            const resultElement = document.getElementById('result');
+            const restartBtn = document.getElementById('restart-btn');
+            const leaveRoomBtn = document.getElementById('leave-room-btn');
+            const gameBoard = document.getElementById('game-board');
+            
+            let roomId = null;
+            let playerId = null;
+            let playerSymbol = null;
+            let isHost = false;
+            let gameActive = false;
+            let currentPlayer = 'X';
+            let gameBoardState = ['', '', '', '', '', '', '', '', ''];
+            
+            // Создание игрового поля
+            function createGameBoard() {
+                gameBoard.innerHTML = '';
+                for (let i = 0; i < 9; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.setAttribute('data-index', i);
+                    cell.addEventListener('click', () => handleCellClick(i));
+                    gameBoard.appendChild(cell);
+                }
+            }
+            
+            // Генерация кода комнаты
+            function generateRoomCode() {
+                return Math.random().toString(36).substring(2, 6).toUpperCase();
+            }
+            
+            // Создание комнаты
+            function createRoom() {
+                roomId = generateRoomCode();
+                playerId = 'player1';
+                playerSymbol = 'X';
+                isHost = true;
+                
+                // Сохранение комнаты
+                const room = {
+                    id: roomId,
+                    players: { player1: 'Игрок 1', player2: null },
+                    gameState: {
+                        board: ['', '', '', '', '', '', '', '', ''],
+                        currentPlayer: 'X',
+                        gameActive: false
+                    }
+                };
+                
+                localStorage.setItem(`room_${roomId}`, JSON.stringify(room));
+                
+                showGameScreen();
+                updatePlayerDisplay();
+                startGameLoop();
+            }
+            
+            // Присоединение к комнате
+            function joinRoom() {
+                const roomCode = roomCodeInput.value.trim().toUpperCase();
+                if (!roomCode) {
+                    alert('Введите код комнаты');
+                    return;
+                }
+                
+                const roomData = localStorage.getItem(`room_${roomCode}`);
+                if (!roomData) {
+                    alert('Комната не найдена');
+                    return;
+                }
+                
+                const room = JSON.parse(roomData);
+                if (room.players.player2) {
+                    alert('В комнате уже два игрока');
+                    return;
+                }
+                
+                roomId = roomCode;
+                playerId = 'player2';
+                playerSymbol = 'O';
+                isHost = false;
+                
+                // Обновление комнаты
+                room.players.player2 = 'Игрок 2';
+                room.gameState.gameActive = true;
+                localStorage.setItem(`room_${roomId}`, JSON.stringify(room));
+                
+                showGameScreen();
+                updatePlayerDisplay();
+                startGameLoop();
+            }
+            
+            // Показать экран игры
+            function showGameScreen() {
+                lobbyElement.classList.add('hidden');
+                gameElement.classList.remove('hidden');
+                roomCodeDisplay.textContent = roomId;
+            }
+            
+            // Показать лобби
+            function showLobbyScreen() {
+                gameElement.classList.add('hidden');
+                lobbyElement.classList.remove('hidden');
+                roomId = null;
+                playerId = null;
+                playerSymbol = null;
+                isHost = false;
+                gameActive = false;
+                currentPlayer = 'X';
+                gameBoardState = ['', '', '', '', '', '', '', '', ''];
+                resultElement.textContent = '';
+                createGameBoard();
+            }
+            
+            // Обновление отображения игроков
+            function updatePlayerDisplay() {
+                const roomData = localStorage.getItem(`room_${roomId}`);
+                if (roomData) {
+                    const room = JSON.parse(roomData);
+                    
+                    player1Name.textContent = room.players.player1 || 'Ожидание...';
+                    player2Name.textContent = room.players.player2 || 'Ожидание...';
+                    
+                    // Подсветка активного игрока
+                    player1Element.classList.remove('active');
+                    player2Element.classList.remove('active');
+                    
+                    if (room.gameState.currentPlayer === 'X') {
+                        player1Element.classList.add('active');
+                    } else {
+                        player2Element.classList.add('active');
+                    }
+                }
+            }
+            
+            // Цикл обновления игры
+            function startGameLoop() {
+                setInterval(() => {
+                    if (!roomId) return;
+                    
+                    const roomData = localStorage.getItem(`room_${roomId}`);
+                    if (!roomData) {
+                        showLobbyScreen();
+                        alert('Комната была закрыта');
+                        return;
+                    }
+                    
+                    const room = JSON.parse(roomData);
+                    gameBoardState = room.gameState.board;
+                    currentPlayer = room.gameState.currentPlayer;
+                    gameActive = room.gameState.gameActive;
+                    
+                    updateBoardDisplay();
+                    currentPlayerElement.textContent = currentPlayer;
+                    updatePlayerDisplay();
+                    checkGameResult();
+                }, 1000);
+            }
+            
+            // Обновление доски
+            function updateBoardDisplay() {
+                const cells = gameBoard.querySelectorAll('.cell');
+                cells.forEach((cell, index) => {
+                    cell.textContent = gameBoardState[index];
+                    cell.className = 'cell';
+                    if
